@@ -70,6 +70,7 @@ def retrieve_command(response):
 
 
 def receive_response_packet(request, timeout, nb_responses):
+    print("Start receiving packets")
     packets = []
     for index in range(nb_responses):
         packets.append(
