@@ -74,7 +74,7 @@ def receive_response_packet(request, timeout, nb_responses):
     packets = []
     for index in range(nb_responses):
         packets.append(
-            scapy.sniff(stop_filter=lambda response: match_response_to_request(response, request), timeout=timeout, prn=lambda packet: packet.summary()))
+            scapy.sniff(stop_filter=lambda response: match_response_to_request(response, request), count=1, timeout=timeout, prn=lambda packet: packet.summary()))
     print("Received packet:", packets[1].show())
     return packets[1]
 
