@@ -18,7 +18,8 @@ DEFAULT_PAYLOAD = b''
 def send_ping(ip_addr, id, seq_number, payload, timeout, nb_responses=2):
     request = scapy.IP(dst=ip_addr) / scapy.ICMP(id=id, seq=seq_number) / payload
     scapy.send(request)
-    print("Sent packet:", request.show())
+    print("Sent packet:")
+    print(request.show())
     return receive_response_packet(request, timeout, nb_responses)
 
 
@@ -75,7 +76,8 @@ def receive_response_packet(request, timeout, nb_responses):
     for index in range(nb_responses):
         packets.append(
             scapy.sniff(stop_filter=lambda response: match_response_to_request(response, request), count=1, timeout=timeout, prn=lambda packet: packet.summary()))
-    print("Received packet:", packets[1].show())
+    print("Received packet:")
+    print(packets[1].show())
     return packets[1]
 
 
