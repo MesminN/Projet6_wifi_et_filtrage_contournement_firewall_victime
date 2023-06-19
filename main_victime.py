@@ -74,10 +74,11 @@ def receive_response_packet(request, timeout, nb_responses):
     print("Start receiving packets")
     packets = []
     for index in range(nb_responses):
-        packets.append(
-            scapy.sniff(stop_filter=lambda response: match_response_to_request(response, request), count=1, timeout=timeout, prn=lambda packet: packet.summary()))
-    print("Received packet:")
+        packet = scapy.sniff(stop_filter=lambda response: match_response_to_request(response, request), count=1, timeout=timeout, prn=lambda packet: packet.summary())
+        packets.append(packet[0])
+    print("Received packets:")
     print(packets[1].show())
+    # for packet in packets: print(packet.show())
     return packets[1]
 
 
@@ -88,12 +89,17 @@ def can_proceed(ip_addr):
 
 def match_response_to_request(response, request):
     # print(response.show(), request.show())
-    return response.haslayer(scapy.ICMP) \
+    result = response.haslayer(scapy.ICMP) \
         and response[scapy.IP].src == request[scapy.IP].dst \
         and response[scapy.IP].dst == request[scapy.IP].src \
         and response[scapy.ICMP] and response[scapy.ICMP].type == 0 \
         and response[scapy.ICMP].id == request[scapy.ICMP].id \
         and response[scapy.ICMP].seq == request[scapy.ICMP].seq
+    result = True if result else False
+    print(f"Match {response.summary()} -> {result}")
+    if result:
+        print(response.show())
+    return result
 
 
 def list_directory(path):
